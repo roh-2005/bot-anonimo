@@ -10,8 +10,8 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 # ================= CONFIGURAÇÕES =================
-# Certifique-se de que esses IDs e Token estão corretos
-TOKEN = "8600770877:AAEvpkG_o-B1mly5qndH9EBXmybSElkTL3A"
+# Token atualizado conforme solicitado
+TOKEN = "8600770877:AAEu929aQvg9UITe4km52OQYYSehjKlFO1U"
 DONO_ID = 7551063741
 ID_GRUPO_FIXO = -1003664995426  
 FONTE_ESTILIZADA = "𝐌𝐄𝐍𝐒𝐀𝐆𝐄𝐌 𝐀𝐍𝐎‌𝐍𝐈𝐌𝐀"
@@ -101,3 +101,4 @@ def enviar_confissao(m):
 if __name__ == "__main__":
     print(f"🔥 Bot Anônimo Ativado no Grupo: {ID_GRUPO_FIXO}")
     bot.infinity_polling(skip_pending=True)
+    
