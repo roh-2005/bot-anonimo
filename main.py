@@ -21,6 +21,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML", threaded=True)
 class Estado:
     usuarios_autorizados = set()
     last_msg_time = {}
+    # Usamos um número muito grande para representar "ligado por tempo indeterminado"
     tempo_expiracao = 0 
 
 # ================= KEEP ALIVE =================
@@ -52,7 +53,7 @@ def calcular_segundos(tempo_str):
 def handle_sms(m):
     if m.chat.type == 'private': return
     
-    # Verificação de ADM
+    # Verificação de ADM ou Dono
     try:
         status = bot.get_chat_member(m.chat.id, m.from_user.id).status
         if status not in ['administrator', 'creator'] and m.from_user.id != DONO_ID:
@@ -61,54 +62,57 @@ def handle_sms(m):
 
     args = m.text.split()
     
-    # Caso 1: Usuário digitou apenas /sms
-    if len(args) < 2:
-        return bot.reply_to(m, "⚠️ Use: <code>/sms 10m</code> para ligar ou <code>/sms off</code> para desligar.")
-
-    comando_secundario = args[1].lower()
-
-    # Caso 2: Comando /sms off
-    if comando_secundario == "off":
-        Estado.tempo_expiracao = 0
-        return bot.send_message(m.chat.id, "📴 <b>CORREIO ANÔNIMO DESLIGADO!</b>\nO bot não aceitará novas mensagens.")
-
-    # Caso 3: Comando /sms [tempo]
-    segundos = calcular_segundos(comando_secundario)
-    if segundos is None:
-        return bot.reply_to(m, "❌ Formato inválido! Use <code>/sms off</code> ou tempo como 10s, 5m, 1h.")
-
-    Estado.tempo_expiracao = time.time() + segundos
+    # CASO 1: Apenas /sms -> Liga por tempo indeterminado
+    if len(args) == 1:
+        # Define a expiração para o ano de 2050 (praticamente infinito)
+        Estado.tempo_expiracao = 2524608000 
+        msg_texto = "💌 <b>CORREIO ANÔNIMO ATIVADO!</b>\nO bot está ligado por tempo indeterminado."
     
+    else:
+        comando_secundario = args[1].lower()
+
+        # CASO 2: /sms off -> Desliga na hora
+        if comando_secundario == "off":
+            Estado.tempo_expiracao = 0
+            return bot.send_message(m.chat.id, "📴 <b>CORREIO ANÔNIMO DESLIGADO!</b>\nO bot foi desligado imediatamente.")
+
+        # CASO 3: /sms [tempo] -> Liga por tempo determinado
+        segundos = calcular_segundos(comando_secundario)
+        if segundos is None:
+            return bot.reply_to(m, "❌ <b>Erro!</b> Use:\n• <code>/sms</code> (Indeterminado)\n• <code>/sms 10m</code> (Por tempo)\n• <code>/sms off</code> (Desligar)")
+
+        Estado.tempo_expiracao = time.time() + segundos
+        msg_texto = f"💌 <b>CORREIO ANÔNIMO ATIVADO!</b>\nO bot aceitará mensagens pelos próximos <b>{comando_secundario}</b>."
+
+    # Envia a mensagem com o botão
     markup = telebot.types.InlineKeyboardMarkup()
     btn_url = f"t.me/{bot.get_me().username}?start=enviar"
     markup.add(telebot.types.InlineKeyboardButton("📤 ENVIAR MENSAGEM ANÔNIMA", url=btn_url))
     
-    bot.send_message(
-        m.chat.id, 
-        f"💌 <b>CORREIO ANÔNIMO ATIVADO!</b>\n\nTempo restante: <b>{args[1]}</b>.\nClique abaixo para enviar.",
-        reply_markup=markup
-    )
+    bot.send_message(m.chat.id, msg_texto, reply_markup=markup)
 
 @bot.message_handler(commands=['start'])
 def start_pv(m):
     if m.chat.type != 'private': return
     
+    # Verifica se o bot está OFF
     if time.time() > Estado.tempo_expiracao:
-        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline. Peça para um ADM ligar no grupo.")
+        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline no momento. Aguarde um administrador ligá-lo pelo grupo.")
     
     if "enviar" in m.text:
         Estado.usuarios_autorizados.add(m.from_user.id)
-        bot.send_message(m.from_user.id, "🔓 <b>MODO ANÔNIMO ATIVADO!</b>\nEscreva sua mensagem.")
+        bot.send_message(m.from_user.id, "🔓 <b>MODO ANÔNIMO ATIVADO!</b>\n\nEscreva sua mensagem abaixo.")
     else:
-        bot.send_message(m.from_user.id, "👋 Use o link de envio do grupo.")
+        bot.send_message(m.from_user.id, "👋 Use o link de envio disponível no grupo.")
 
 @bot.message_handler(func=lambda m: m.chat.type == 'private', content_types=['text'])
 def enviar_confissao(m):
     uid = m.from_user.id
     agora = time.time()
 
+    # Verifica se o tempo expirou
     if agora > Estado.tempo_expiracao:
-        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot foi desligado recentemente.")
+        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot está offline.")
 
     if uid not in Estado.usuarios_autorizados:
         return bot.reply_to(m, "⚠️ Inicie pelo botão do grupo!")
