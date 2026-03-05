@@ -21,7 +21,7 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML", threaded=True)
 class Estado:
     usuarios_autorizados = set()
     last_msg_time = {}
-    tempo_expiracao = 0  # Timestamp de quando o bot deve desligar
+    tempo_expiracao = 0 
 
 # ================= KEEP ALIVE =================
 app = Flask(__name__)
@@ -49,9 +49,10 @@ def calcular_segundos(tempo_str):
 # ================= LÓGICA DO BOT =================
 
 @bot.message_handler(commands=['sms'])
-def menu_grupo(m):
+def handle_sms(m):
     if m.chat.type == 'private': return
     
+    # Verificação de ADM
     try:
         status = bot.get_chat_member(m.chat.id, m.from_user.id).status
         if status not in ['administrator', 'creator'] and m.from_user.id != DONO_ID:
@@ -59,12 +60,22 @@ def menu_grupo(m):
     except: return
 
     args = m.text.split()
+    
+    # Caso 1: Usuário digitou apenas /sms
     if len(args) < 2:
-        return bot.reply_to(m, "⚠️ Use: <code>/sms 30s</code>, <code>/sms 10m</code> ou <code>/sms 1h</code>")
+        return bot.reply_to(m, "⚠️ Use: <code>/sms 10m</code> para ligar ou <code>/sms off</code> para desligar.")
 
-    segundos = calcular_segundos(args[1])
+    comando_secundario = args[1].lower()
+
+    # Caso 2: Comando /sms off
+    if comando_secundario == "off":
+        Estado.tempo_expiracao = 0
+        return bot.send_message(m.chat.id, "📴 <b>CORREIO ANÔNIMO DESLIGADO!</b>\nO bot não aceitará novas mensagens.")
+
+    # Caso 3: Comando /sms [tempo]
+    segundos = calcular_segundos(comando_secundario)
     if segundos is None:
-        return bot.reply_to(m, "❌ Formato de tempo inválido! Use s, m ou h.")
+        return bot.reply_to(m, "❌ Formato inválido! Use <code>/sms off</code> ou tempo como 10s, 5m, 1h.")
 
     Estado.tempo_expiracao = time.time() + segundos
     
@@ -74,45 +85,30 @@ def menu_grupo(m):
     
     bot.send_message(
         m.chat.id, 
-        f"💌 <b>CORREIO ANÔNIMO ATIVADO!</b>\n\nO bot aceitará mensagens pelos próximos <b>{args[1]}</b>.\nO sigilo é absoluto.",
+        f"💌 <b>CORREIO ANÔNIMO ATIVADO!</b>\n\nTempo restante: <b>{args[1]}</b>.\nClique abaixo para enviar.",
         reply_markup=markup
     )
-
-@bot.message_handler(commands=['smsoff'])
-def desligar_grupo(m):
-    if m.chat.type == 'private': return
-    
-    try:
-        status = bot.get_chat_member(m.chat.id, m.from_user.id).status
-        if status not in ['administrator', 'creator'] and m.from_user.id != DONO_ID:
-            return
-    except: return
-
-    Estado.tempo_expiracao = 0 # Reseta o tempo para agora
-    bot.send_message(m.chat.id, "📴 <b>CORREIO ANÔNIMO DESLIGADO!</b>\nNenhuma mensagem será enviada ao grupo até que um ADM ligue novamente.")
 
 @bot.message_handler(commands=['start'])
 def start_pv(m):
     if m.chat.type != 'private': return
     
-    # Verifica se o bot está OFF
     if time.time() > Estado.tempo_expiracao:
-        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline no momento. Aguarde um administrador ligá-lo pelo grupo.")
+        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline. Peça para um ADM ligar no grupo.")
     
     if "enviar" in m.text:
         Estado.usuarios_autorizados.add(m.from_user.id)
-        bot.send_message(m.from_user.id, "🔓 <b>MODO ANÔNIMO ATIVADO!</b>\n\nEscreva sua mensagem abaixo.")
+        bot.send_message(m.from_user.id, "🔓 <b>MODO ANÔNIMO ATIVADO!</b>\nEscreva sua mensagem.")
     else:
-        bot.send_message(m.from_user.id, "👋 Use o link de envio disponível no grupo.")
+        bot.send_message(m.from_user.id, "👋 Use o link de envio do grupo.")
 
 @bot.message_handler(func=lambda m: m.chat.type == 'private', content_types=['text'])
 def enviar_confissao(m):
     uid = m.from_user.id
     agora = time.time()
 
-    # Verifica se o tempo expirou durante o uso
     if agora > Estado.tempo_expiracao:
-        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot acabou de ser desligado. Sua mensagem não foi enviada.")
+        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot foi desligado recentemente.")
 
     if uid not in Estado.usuarios_autorizados:
         return bot.reply_to(m, "⚠️ Inicie pelo botão do grupo!")
