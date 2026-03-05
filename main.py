@@ -78,11 +78,26 @@ def menu_grupo(m):
         reply_markup=markup
     )
 
+@bot.message_handler(commands=['smsoff'])
+def desligar_grupo(m):
+    if m.chat.type == 'private': return
+    
+    try:
+        status = bot.get_chat_member(m.chat.id, m.from_user.id).status
+        if status not in ['administrator', 'creator'] and m.from_user.id != DONO_ID:
+            return
+    except: return
+
+    Estado.tempo_expiracao = 0 # Reseta o tempo para agora
+    bot.send_message(m.chat.id, "📴 <b>CORREIO ANÔNIMO DESLIGADO!</b>\nNenhuma mensagem será enviada ao grupo até que um ADM ligue novamente.")
+
 @bot.message_handler(commands=['start'])
 def start_pv(m):
     if m.chat.type != 'private': return
+    
+    # Verifica se o bot está OFF
     if time.time() > Estado.tempo_expiracao:
-        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline no momento.")
+        return bot.send_message(m.chat.id, "🚫 <b>SISTEMA:</b> O bot está offline no momento. Aguarde um administrador ligá-lo pelo grupo.")
     
     if "enviar" in m.text:
         Estado.usuarios_autorizados.add(m.from_user.id)
@@ -95,9 +110,9 @@ def enviar_confissao(m):
     uid = m.from_user.id
     agora = time.time()
 
-    # Verifica se o tempo expirou
+    # Verifica se o tempo expirou durante o uso
     if agora > Estado.tempo_expiracao:
-        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot está offline. Aguarde um administrador ligá-lo novamente.")
+        return bot.reply_to(m, "🚫 <b>SISTEMA:</b> O bot acabou de ser desligado. Sua mensagem não foi enviada.")
 
     if uid not in Estado.usuarios_autorizados:
         return bot.reply_to(m, "⚠️ Inicie pelo botão do grupo!")
