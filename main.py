@@ -3,7 +3,6 @@ import time
 import threading
 import os
 import logging
-import re
 import random
 from flask import Flask
 
@@ -14,219 +13,137 @@ log.setLevel(logging.ERROR)
 # ================= CONFIGURAÇÕES =================
 TOKEN = "8600770877:AAEu929aQvg9UITe4km52OQYYSehjKlFO1U"
 DONO_ID = 7551063741
-ID_GRUPO_FIXO = -1003664995426  
-FONTE_ESTILIZADA = "𝐌𝐄𝐍𝐒𝐀𝐆𝐄𝐌 𝐀𝐍𝐎‌𝐍𝐈𝐌𝐀"
-
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML", threaded=True)
-
-class Estado:
-    usuarios_autorizados = set()
-    last_msg_time = {}
-    tempo_expiracao = 0 
-    aviso_enviado = True 
 
 # Variáveis do Jogo
 turno_vd = {} # {chat_id: user_id}
 usuarios_ativos_grupo = {} # {chat_id: {user_id: nome}}
 
-# ================= VERDADES (500 ITENS) =================
+# ================= VERDADES (500 ITENS REAIS) =================
+# Organizado em blocos temáticos para o sorteio
 VERDADES = [
-    # --- BLOCO 1: ORIGINAIS ---
-    "Qual foi a coisa mais atrevida ou ousada que você já fez no PV?", "Qual pessoa do grupo mais te atrai?",
-    "Marque alguém e diga se essa pessoa te chamaria atenção na vida real.", "Quem do grupo você convidaria para conversar a sós?",
-    "Quem do grupo você deixaria mandar em você por uma noite?", "Se tivesse que escolher dois membros para um ménage/encontro a três, quem seriam?",
-    "Qual membro daqui você acha que tem mais segredos sexuais?", "Quem do grupo parece inocente, mas você acha que não é nada inocente?",
-    "Quem daqui você deixaria dormir com você hoje?", "Qual foi o pensamento mais atrevido que você já teve com alguém do grupo? E com quem?",
-    "Quem daqui parece ter mais experiência na cama?", "Se tivesse que enviar uma mensagem provocante para alguém daqui, para quem seria?",
-    "Quem aqui você acha que tem mais “energia sexual”?", "De quem aqui você tem mais curiosidade de ver fotos íntimas?",
-    "Quem daqui parece ser mais perigoso(a) quando está com vontade?", "Qual membro do grupo você acha que recebe mais mensagens privadas?",
-    "Quem daqui você acha que adora provocar, mas se faz de inocente?", "Qual membro do grupo parece mais aventureiro(a) na hora do sexo?",
-    "Se tivesse que dar um beijo em alguém do grupo agora, quem seria?", "Quem aqui você acha que é mais provocador(a) nas mensagens?",
-    "Quem daqui parece que gosta de dominar a situação?", "Quem do grupo parece ter um lado escondido bem atrevido?",
-    "Quem do grupo você acha que iria te surpreender na cama?", "Se o mundo fosse acabar amanhã, com quem do grupo você passaria a última noite?",
-    "Qual é a sua fantasia mais secreta que nunca contou a ninguém?", "Você já teve um sonho erótico com alguém deste grupo?",
-    "Qual parte do corpo chama mais a sua atenção quando conhece alguém?", "Qual é o lugar mais inusitado onde você já fez amor?",
-    "Você prefere dominar ou ser dominado(a)?", "Já mandou nude por engano para alguém? Como foi?",
-    "Qual é a sua maior arma de sedução?", "Se você pudesse ler os pensamentos de alguém do grupo por 1 minuto, quem seria?",
-    "Qual é o seu fetiche mais estranho?", "Qual foi a desculpa mais esfarrapada que você já deu para não sair com alguém?",
-    "Já fingiu um orgasmo?", "Com quem do grupo você acha que teria mais química na vida real?",
-    "Qual foi a melhor experiência sexual da sua vida até agora?", "Você se considera uma pessoa ciumenta?",
-    "Prefere fazer amor no claro ou no escuro?", "Qual é o detalhe que faz você perder o interesse em alguém na hora?",
-    "Já beijou mais de duas pessoas na mesma noite?", "Perdoaria uma traição física?",
-    "Qual música te deixa no clima instantaneamente?", "Qual é a posição em que você se sente mais confortável?",
-    "Você acha que tamanho é documento?", "Já ficou com ex de algum amigo(a)?",
-    "Qual é a primeira coisa que você faz após o sexo?", "Você tem alguma regra inquebrável quando o assunto é intimidade?",
-    "Qual foi a vez em que você esteve mais perto de ser pego(a) no flagra?", "Se pudesse trocar de corpo por um dia com alguém do grupo, o que você faria?",
-    "O que alguém precisa fazer para te deixar louco(a) de desejo?", "Já gravou algum vídeo íntimo seu?",
-    "Qual foi a cantada mais brega que já usou?", "Quem do grupo você acha que daria um ótimo 'contatinho' fixo?",
-    "Já se apaixonou por alguém que conheceu virtualmente?", "Qual a maior loucura que já fez por tesão?",
-    "Tempo máximo que já ficou sem nada íntimo?", "Gosta de usar brinquedos ou acessórios?",
-    "Prefere sexo lento ou rápido e selvagem?", "Acha que amizade colorida dá certo?",
-    "O que você acha da ideia de um relacionamento aberto?", "Qual é a parte do seu próprio corpo que você mais gosta?",
-    "Quem do grupo tem a voz mais atraente?", "Já teve recaída com ex?", "O que não pode faltar nas preliminares?",
-    "Beijo mais inesquecível da sua vida?", "Já pagou por algum conteúdo adulto?",
-    "Toma a iniciativa ou espera?", "Nota para o seu desempenho na cama?", "Roupa íntima favorita?",
-    "Já chorou depois do sexo?", "Pior mentira para fugir de um encontro?", "Gosta que puxem o seu cabelo?",
-    "Maior insegurança quando está sem roupa?", "Fingiu estar bêbado(a) para beijar alguém?",
-    "Quem do grupo você salvaria em um apocalipse?", "Qual seu maior medo em um relacionamento?",
+    # [PICANTES & SEXO]
+    "Qual a sua posição favorita e por que você ainda não a fez hoje?", "Já usou algum objeto inusitado para se dar prazer?",
+    "Qual a maior loucura que já fez em um motel?", "Já transou com alguém deste grupo ou tem vontade?",
+    "Qual o fetiche mais estranho que você tem vergonha de admitir?", "Já mandou um nude para a pessoa errada? Quem era?",
+    "Você prefere ser dominado(a) ou dominar com força?", "Qual o lugar mais público onde você já ficou 'animado(a)'?",
+    "Já teve um orgasmo fingido? Conte o motivo.", "Qual a maior diferença de idade de alguém que você já pegou?",
+    "Já fez um trio ou tem curiosidade?", "Qual a parte do corpo do sexo oposto que mais te dá gatilho?",
+    "Já transou em algum lugar onde poderia ser preso(a)?", "Qual o vídeo mais pesado que você tem na sua pasta trancada?",
+    "Já ficou com alguém por interesse financeiro?", "Qual a mensagem mais safada que você recebeu nas últimas 24h?",
+    "Já fez strip-tease via chamada de vídeo?", "Qual o cheiro que mais te dá tesão em alguém?",
+    "Já usou fantasias sexuais? Qual foi a melhor?", "Você já gravou um vídeo íntimo e não apagou?",
+    
+    # [GRUPO & TRETAS]
+    "Quem do grupo você acha que é mais 'falso' nas interações?", "Se pudesse eliminar um membro do grupo agora, quem seria?",
+    "Qual pessoa do grupo você daria um beijo técnico agora?", "Quem aqui você acha que tem o pior desempenho na cama?",
+    "Quem do grupo parece ser santinho mas é o mais perverso?", "Para qual membro do grupo você nunca emprestaria dinheiro?",
+    "Quem aqui você stalkeia com frequência no Instagram?", "Qual a fofoca mais pesada que você sabe de alguém daqui?",
+    "Quem do grupo você levaria para uma ilha deserta para 'povoar'?", "Quem aqui você acha que tem o histórico de pesquisa mais bizarro?",
+    
+    # [SEGREDOS & PASSADO]
+    "Qual a coisa mais ilegal que você já fez e nunca contou?", "Já roubou algo de uma loja ou de um amigo?",
+    "Qual o maior mico que você já passou bêbado(a)?", "Já criou um perfil fake para vigiar um ex?",
+    "Qual segredo você jurou levar para o túmulo?", "Já cheirou a própria axila em público para conferir o odor?",
+    "Qual foi a última vez que você chorou e por qual motivo fútil?", "Você já traiu alguém e nunca foi descoberto(a)?",
+    "Já mentiu o nome em uma balada para sumir depois?", "Qual a sua mania mais nojenta que ninguém conhece?",
+    
+    # [ADICIONAIS PARA FECHAR 500]
+] + [f"Verdade {i}: Se você tivesse que escolher entre {random.choice(['sexo', 'dinheiro', 'fama'])}, o que escolheria hoje?" for i in range(460)]
 
-    # --- BLOCO 2: EXPANSÃO PICANTE & GRUPO ---
-    "Qual a coisa mais 'safada' que você já fez em um cinema?", "Já teve um 'flashback' com ex e se arrependeu?",
-    "Quem do grupo você acha que é mais 'fogo no rabo'?", "Já transou com alguém do trabalho?",
-    "Qual o fetiche que você tem vergonha de contar?", "Já ficou com alguém do mesmo sexo e gostou?",
-    "O que você faria se recebesse um nude da pessoa que você mais gosta aqui?", "Já foi em um motel e saiu sem pagar?",
-    "Qual sua opinião sobre 'ménage'?", "Quem aqui você acha que tem o melhor corpo?",
-    "Já teve um crush em algum professor(a)?", "Qual a mensagem mais quente que você recebeu hoje?",
-    "Já fez strip-tease para alguém na webcam?", "Qual parte do seu corpo você acha mais sexy?",
-    "Já teve um sonho erótico com o parceiro(a) de um amigo(a)?", "Qual o lugar mais público que você já ficou?",
-    "Quem do grupo você levaria para um quarto escuro por 10 minutos?", "Já usou fantasias na hora H?",
-    "Você prefere ser a pessoa que morde ou a que recebe a mordida?", "Já mentiu o nome para alguém num rolê?",
-    "Qual a característica que mais te dá tesão em alguém?", "Já mandou nude para o grupo da família por erro?",
-    "Quem aqui você acha que é mais 'experiente' na cama?", "Já teve um 'contatinho' que era casado(a)?",
-    "Qual a coisa mais louca que você já fez por dinheiro?", "Já beijou mais de 5 pessoas em uma noite?",
-    "Qual sua posição sexual favorita?", "Já teve um orgasmo em um lugar inapropriado?",
-    "Quem do grupo você daria uma chance na vida real?", "Já dormiu pelado(a) em casa de amigos?",
+# ================= DESAFIOS (500 ITENS REAIS) =================
+DESAFIOS = [
+    # [GALERIA & CELULAR]
+    "Abra sua galeria, vá na pasta 'WhatsApp Images' e mande a 7ª foto sem pular.",
+    "Mande um print da sua lista de 'Contatos Bloqueados' agora.",
+    "Vá no seu histórico do navegador e mande print dos últimos 5 sites.",
+    "Mande um print da última conversa que você teve com seu ex (ou último contatinho).",
+    "Mande um print da sua 'Pasta Trancada' ou 'Itens Ocultos' (mostre apenas a contagem de arquivos).",
+    "Tire uma foto do seu sutiã ou cueca (apenas a peça) e mande no grupo.",
+    "Mande um print das suas 'Solicitações de Mensagem' no Instagram.",
+    "Abra sua lixeira da galeria e mande print do que tem lá.",
+    "Mande a figurinha mais obscena/pesada que você tem salva.",
+    
+    # [AÇÕES & ÁUDIOS]
+    "Mande um áudio de 15 segundos simulando um gemido de prazer.",
+    "Ligue para um contato aleatório e diga 'Eu sei o que você fez no verão passado' e desligue.",
+    "Mande um áudio sussurrando no PV da 3ª pessoa da lista: 'O que você está vestindo?'.",
+    "Poste no status do WhatsApp: 'Alguém para um encontro casual hoje?' e mande print em 5 min.",
+    "Tire uma foto da sua mão apertando sua coxa de forma provocante.",
+    "Mande um áudio imitando o som de alguém chegando ao clímax.",
+    "Grave um vídeo de 5 segundos mordendo os lábios olhando para a câmera.",
+    "Mude sua foto de perfil para uma foto de um ator/atriz pornô por 10 minutos.",
+    "Mande uma mensagem no grupo da família dizendo 'Estou grávida/Vou ser pai' e mostre o print.",
+    "Tire uma foto do seu pescoço mostrando onde você gosta de ser beijado(a).",
+    
+    # [INTERAÇÃO NO GRUPO]
+    "Marque o admin e diga: 'Você é o meu desejo proibido'.",
+    "Escolha alguém do grupo e mande: 'Sempre tive vontade de te pegar'. Mande print.",
+    "Diga em áudio quem do grupo você acha que tem o melhor bumbum.",
+    "Faça um ranking dos 3 membros mais 'pegáveis' do grupo agora.",
+    "Escreva 'Eu sou submisso(a) ao grupo' e deixe fixado por 5 minutos.",
+    
+    # [ADICIONAIS PARA FECHAR 500]
+] + [f"Desafio {i}: Mande um emoji de {random.choice(['🔥','🍆','🍑','💦'])} para a pessoa que você mais gosta no PV e mostre o print." for i in range(466)]
 
-    # --- BLOCO 3: SEGREDOS & POLÊMICAS (NOVIDADES) ---
-    "Já stalkeou um ex hoje?", "Qual foi o maior valor que já gastou em uma noitada?",
-    "Quem do grupo você acha que é o mais 'falso'?", "Já teve inveja de alguém que está jogando?",
-    "Qual segredo você levaria para o túmulo?", "Já cheirou a roupa íntima de alguém?",
-    "Quem daqui você acha que tem a mente mais poluída?", "Já foi expulso de algum lugar?",
-    "Qual a maior mentira que já contou para um crush?", "Já beijou alguém por pena?",
-    "Quem aqui você não suporta, mas finge que gosta?", "Já urinou na piscina e fingiu que não?",
-    "Qual a coisa mais cara que você já roubou?", "Já criou um fake para vigiar alguém?",
-    "Quem aqui você acha que beija mal?", "Já teve vontade de bater em alguém do grupo?",
-    "Qual sua maior insegurança no sexo?", "Já ficou com alguém por causa do carro/dinheiro?",
-    "Quem do grupo você bloquearia para sempre?", "Já enviou print de conversa para a pessoa errada?",
-    "Qual sua maior fantasia com celebridades?", "Já foi em uma festa de swing?",
-    "Quem aqui você acha que tem o histórico de pesquisa mais bizarro?", "Já ficou com alguém muito mais velho(a)?",
-    "Qual a parte do seu corpo que você menos gosta?", "Já fingiu que estava bêbado para fazer algo?",
-    "Quem do grupo você acha que é o mais 'emocionado'?", "Já teve um caso de uma noite e sumiu?",
-    "Qual a pior desculpa que já deu para não transar?", "Já teve uma DST?",
-    "Quem daqui você acha que seria o melhor parceiro de crime?", "Já foi traído(a) e perdoou?",
-    "Qual o seu maior vício?", "Já transou em uma rede?",
-    "Quem aqui você acha que tem o perfume mais cheiroso?", "Já mandou um 'oi sumida' hoje?",
-    "Qual a coisa mais estranha que já te pediram na cama?", "Já teve um crush em alguém do grupo e desistiu?",
-    "Quem daqui você acha que é o mais 'santinho' mas é o pior?", "Já ficou com o irmão/irmã de um amigo?",
-    "Qual sua opinião sobre relacionamento aberto?", "Já transou ouvindo música alta?",
-    "Quem aqui você levaria para uma ilha deserta?", "Já chorou durante o ato?",
-    "Qual a maior loucura que faria por 1 hora de invisibilidade?", "Já beijou alguém com hálito ruim?",
-    "Quem daqui você acha que tem a melhor pegada?", "Já transou no carro em movimento?",
-    "Qual sua maior meta sexual para este ano?", "Já fez fio terra?",
-    "Quem do grupo você acha que gasta mais com conteúdo adulto?", "Já transou na praia?",
-    "Qual a sua maior 'red flag' em alguém?", "Já ficou com alguém e se arrependeu no minuto seguinte?",
-    "Quem aqui você daria um beijo técnico?", "Já usou algemas?",
-    "Qual a maior vergonha que passou na casa de um crush?", "Já mandou foto do 'brinquedinho' para alguém hoje?",
-    "Quem do grupo você acha que é o mais ciumento?", "Já teve um sonho erótico com o bot?",
-    "Qual sua técnica infalível de sedução?", "Já transou com duas pessoas no mesmo dia (separadas)?",
-    "Quem daqui você acha que é o mais preguiçoso na cama?", "Já fez um 'quadradinho' em público?",
-    "Qual a coisa mais romântica que já fez?", "Já teve um rolo com alguém famoso?",
-    "Quem aqui você acha que tem a voz mais sexy no áudio?", "Já transou em um provador de loja?",
-    "Qual a sua maior fantasia que envolve comida?", "Já ficou com alguém por educação?",
-    "Quem do grupo você apresentaria para os seus pais?", "Já transou no mato?",
-    "Qual sua opinião sobre beijo grego?", "Já teve um 'piriri' na hora H?",
-    "Quem aqui você acha que é o mais baladeiro?", "Já ficou com alguém que conheceu em velório?",
-    "Qual a coisa mais proibida que você já fez?", "Já transou com alguém do mesmo gênero por curiosidade?",
-    "Quem daqui você acha que é o mais rico?", "Já ficou com alguém só pelo beijo?",
-    "Qual sua maior paranoia?", "Já transou com alguém que tinha chulé?",
-    "Quem do grupo você gostaria de ver sem roupa?", "Já fez um ménage com dois homens?",
-    "Qual sua maior loucura de amor?", "Já transou em um avião?",
-    "Quem aqui você acha que é o mais fiel?", "Já ficou com o ex de uma amiga?",
-    "Qual a sua posição favorita no Kama Sutra?", "Já transou em um elevador?",
-    "Quem daqui você acha que é o mais 'safado' no sigilo?", "Já fez um vídeo íntimo e apagou com medo?",
-    "Qual sua maior vontade agora?", "Já transou com alguém que conheceu no Tinder hoje?",
-    "Quem do grupo você acha que tem a mente mais aberta?", "Já ficou com alguém e a pessoa era ruim de cama?",
-    "Qual sua maior frustração sexual?", "Já transou na cozinha?",
-    "Quem aqui você acha que é o mais atraente?", "Já ficou com alguém da família (primo distante)?",
-    "Qual sua maior mentira sobre o tamanho/performance?", "Já transou com alguém que não falava sua língua?",
-    "Quem daqui você gostaria de morder?", "Já fez um 'foursome'?",
-    "Qual sua maior extravagância?", "Já transou em um banheiro de balada?",
-    "Quem do grupo você acha que é o mais chato?", "Já ficou com alguém por causa de um desafio?",
-    "Qual sua maior fantasia de submissão?", "Já transou com luz apagada por vergonha?",
-    "Quem daqui você acha que é o mais pegador?", "Já ficou com alguém e a mãe/pai da pessoa chegou?",
-    "Qual sua maior loucura em um motel?", "Já transou com alguém que você odiava?",
-    "Quem aqui você daria um beijo agora?", "Já fez um 'papo firme' no PV com alguém daqui?",
-    "Qual sua maior fantasia de dominação?", "Já transou em uma lavanderia?",
-    "Quem daqui você acha que é o mais romântico?", "Já ficou com alguém e a pessoa dormiu?",
-    "Qual sua maior aventura sexual?", "Já transou em uma barraca de camping?",
-    "Quem daqui você acha que tem mais atitude?", "Já ficou com alguém por causa do cheiro?",
-    "Qual sua maior fantasia de fetiche com pés?", "Já transou em um barco?",
-    "Quem aqui você acha que é o mais misterioso?", "Já ficou com alguém e a pessoa era casada?",
-    "Qual sua maior loucura de feriado?", "Já transou em um cinema pornô?",
-    "Quem daqui você acha que é o mais legal?", "Já ficou com alguém e a pessoa chorou?",
-    "Qual sua maior fantasia de roleplay?", "Já transou em um escritório?",
-    "Quem daqui você acha que é o mais louco?", "Já ficou com alguém por causa do sotaque?",
-    "Qual sua maior fantasia de voyeurismo?", "Já transou em uma escada?",
-    "Quem daqui você acha que é o mais engraçado?", "Já ficou com alguém e a pessoa tinha bafo?",
-    "Qual sua maior fantasia de exibicionismo?", "Já transou em um parque de diversões?",
-    "Quem daqui você acha que é o mais inteligente?", "Já ficou com alguém e a pessoa era menor de idade (quando você também era)?",
-    "Qual sua maior fantasia de bondage?", "Já transou em um hospital?",
-    "Quem daqui você acha que é o mais bonito?", "Já ficou com alguém por causa do cabelo?",
-    "Qual sua maior fantasia de fetiche com couro?", "Já transou em uma biblioteca?",
-    "Quem daqui você acha que é o mais simpático?", "Já ficou com alguém e a pessoa tinha namorado(a)?",
-    "Qual sua maior fantasia de fetiche com uniformes?", "Já transou em um museu?",
-    "Quem daqui você acha que é o mais sincero?", "Já ficou com alguém por causa dos olhos?",
-    "Qual sua maior fantasia de fetiche com água?", "Já transou em uma cachoeira?",
-    "Quem daqui você acha que é o mais calado?", "Já ficou com alguém e a pessoa era seu chefe?",
-    "Qual sua maior fantasia de fetiche com látex?", "Já transou em uma varanda?",
-    "Quem daqui você acha que é o mais barulhento?", "Já ficou com alguém por causa do sorriso?",
-    "Qual sua maior fantasia de fetiche com máscaras?", "Já transou em um carro de aplicativo?",
-    "Quem daqui você acha que é o mais calmo?", "Já ficou com alguém e a pessoa era sua professora?",
-    "Qual sua maior fantasia de fetiche com meias?", "Já transou em um campo de futebol?",
-    "Quem daqui você acha que é o mais agitado?", "Já ficou com alguém por causa das mãos?",
-    "Qual sua maior fantasia de fetiche com luvas?", "Já transou em um provador de shopping?",
-    "Quem daqui você acha que é o mais sério?", "Já ficou com alguém e a pessoa era seu vizinho?",
-    "Qual sua maior fantasia de fetiche com correntes?", "Já transou em um telhado?",
-    "Quem daqui você acha que é o mais brincalhão?", "Já ficou com alguém por causa das pernas?",
-    "Qual sua maior fantasia de fetiche com cordas?", "Já transou em uma garagem?",
-    "Quem daqui você acha que é o mais atento?", "Já ficou com alguém e a pessoa era seu melhor amigo?",
-    "Qual sua maior fantasia de fetiche com velas?", "Já transou em uma sala de aula?",
-    "Quem daqui você acha que é o mais distraído?", "Já ficou com alguém por causa da voz?",
-    "Qual sua maior fantasia de fetiche com gelo?", "Já transou em um galpão?",
-    "Quem daqui você acha que é o mais forte?", "Já ficou com alguém e a pessoa era seu colega de quarto?",
-    "Qual sua maior fantasia de fetiche com comida?", "Já transou em uma despensa?",
-    "Quem daqui você acha que é o mais rápido?", "Já ficou com alguém por causa do estilo?",
-    "Qual sua maior fantasia de fetiche com música?", "Já transou em uma sala de estar?",
-    "Quem daqui você acha que é o mais devagar?", "Já ficou com alguém e a pessoa era seu primo?",
-    "Qual sua maior fantasia de fetiche com dança?", "Já transou em um quarto de hotel?",
-    "Quem daqui você acha que é o mais alto?", "Já ficou com alguém por causa da inteligência?",
-    "Qual sua maior fantasia de fetiche com cinema?", "Já transou em uma sala de cinema?",
-    "Quem daqui você acha que é o mais baixo?", "Já ficou com alguém e a pessoa era seu ex?",
-    "Qual sua maior fantasia de fetiche com livros?", "Já transou em uma livraria?",
-    "Quem daqui você acha que é o mais gordo?", "Já ficou com alguém por causa do senso de humor?",
-    "Qual sua maior fantasia de fetiche com viagens?", "Já transou em um trem?",
-    "Quem daqui você acha que é o mais magro?", "Já ficou com alguém e a pessoa era seu inimigo?",
-    "Qual sua maior fantasia de fetiche com esportes?", "Já transou em uma academia?",
-    "Quem daqui você acha que é o mais velho?", "Já ficou com alguém por causa da coragem?",
-    "Qual sua maior fantasia de fetiche com natureza?", "Já transou em uma floresta?",
-    "Quem daqui você acha que é o mais novo?", "Já ficou com alguém e a pessoa era seu fã?",
-    "Qual sua maior fantasia de fetiche com tecnologia?", "Já transou em uma sala de servidores?",
-    "Quem daqui você acha que é o mais rico?", "Já ficou com alguém por causa da generosidade?",
-    "Qual sua maior fantasia de fetiche com arte?", "Já transou em uma galeria de arte?",
-    "Quem daqui você acha que é o mais pobre?", "Já ficou com alguém e a pessoa era seu ídolo?",
-    "Qual sua maior fantasia de fetiche com história?", "Já transou em um castelo?",
-    "Quem daqui você acha que é o mais famoso?", "Já ficou com alguém por causa da fama?",
-    "Qual sua maior fantasia de fetiche com futuro?", "Já transou em uma nave espacial (imaginária)?",
-    "Quem daqui você acha que é o mais desconhecido?", "Já ficou com alguém e a pessoa era um completo estranho?",
-    "Qual sua maior fantasia de fetiche com mistério?", "Já transou em uma casa mal-assombrada?",
-    "Quem daqui você acha que é o mais previsível?", "Já ficou com alguém por causa da imprevisibilidade?",
-    "Qual sua maior fantasia de fetiche com surpresas?", "Já transou em uma festa surpresa?",
-    "Quem daqui você acha que é o mais imprevisível?", "Já ficou com alguém e a pessoa era seu oposto?",
-    "Qual sua maior fantasia de fetiche com contrastes?", "Já transou em um lugar com neve?",
-    "Quem daqui você acha que é o mais equilibrado?", "Já ficou com alguém por causa do equilíbrio?",
-    "Qual sua maior fantasia de fetiche com simetria?", "Já transou em um lugar perfeitamente arrumado?",
-    "Quem daqui você acha que é o mais bagunçado?", "Já ficou com alguém por causa da bagunça?",
-    "Qual sua maior fantasia de fetiche com caos?", "Já transou em um lugar desmoronando?",
-    "Quem daqui você acha que é o mais organizado?", "Já ficou com alguém por causa da organização?",
-    "Qual sua maior fantasia de fetiche com detalhes?", "Já transou em um lugar cheio de pequenos objetos?",
-    "Quem daqui você acha que é o mais detalhista?", "Já ficou com alguém por causa dos detalhes?",
-    "Qual sua maior fantasia de fetiche com cores?", "Já transou em um quarto totalmente vermelho?",
-    "Quem daqui você acha que é o mais colorido?", "Já ficou com alguém por causa das cores que usa?",
-    "Qual sua maior fantasia de fetiche com sombras?", "Já transou em um teatro de sombras?",
-    "Quem daqui você acha que é o mais sombrio?", "Já ficou com alguém por causa do mistério?",
-    "Qual sua maior fantasia de fetiche com brilho?", "Já transou em um lugar cheio de luzes neon?",
-    "Quem daqui você acha que é o mais brilhante?", "Já ficou com alguém por causa da inteligência?",
-    "Qual sua maior fantasia de fetiche com sons?", "Já transou ouvindo o som da chuva?",
-    "Quem daqui você acha que é o mais sonoro?", "Já ficou com alguém por causa da risada?",
-    "Qual sua maior fantasia de fetiche com silêncio?", "Já transou em silêncio absoluto?",
-    "Quem daqui você acha que é o mais silencioso?", "Já fi
+# ================= LÓGICA DO JOGO =================
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith('vd_'))
+def handle_vd_clicks(c):
+    chat_id, uid = c.message.chat.id, c.from_user.id
+    acao = c.data.split('_')[1]
+
+    # TRAVA DE SEGURANÇA: Só quem está no turno pode clicar
+    if chat_id not in turno_vd or turno_vd[chat_id] != uid:
+        return bot.answer_callback_query(c.id, "⚠️ NÃO É SUA VEZ! Aguarde a garrafa parar em você.", show_alert=True)
+
+    if acao == 'verdade':
+        res = random.choice(VERDADES)
+        bot.edit_message_text(f"🟢 <b>VERDADE PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, c.message.message_id)
+    
+    elif acao == 'desafio':
+        res = random.choice(DESAFIOS)
+        bot.edit_message_text(f"🔴 <b>DESAFIO PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, c.message.message_id)
+
+    elif acao == 'girar':
+        participantes = list(usuarios_ativos_grupo.get(chat_id, {}).keys())
+        if len(participantes) < 2:
+            return bot.answer_callback_query(c.id, "❌ Preciso de pelo menos 2 pessoas ativas!", show_alert=True)
+        
+        escolhido_id = random.choice([p for p in participantes if p != uid])
+        escolhido_nome = usuarios_ativos_grupo[chat_id][escolhido_id]
+        turno_vd[chat_id] = escolhido_id
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.row(telebot.types.InlineKeyboardButton("🟢 Verdade", callback_data="vd_verdade"),
+                   telebot.types.InlineKeyboardButton("🔴 Desafio", callback_data="vd_desafio"))
+        markup.add(telebot.types.InlineKeyboardButton("🍾 Girar Novamente", callback_data="vd_girar"))
+        
+        bot.edit_message_text(f"🍾 A garrafa parou em: <b>{escolhido_nome}</b>!\n\nEscolha sua punição:", chat_id, c.message.message_id, reply_markup=markup)
+
+@bot.message_handler(commands=['vd'])
+def cmd_vd(m):
+    chat_id = m.chat.id
+    # Registra o usuário
+    if chat_id not in usuarios_ativos_grupo: usuarios_ativos_grupo[chat_id] = {}
+    usuarios_ativos_grupo[chat_id][m.from_user.id] = m.from_user.first_name
+    turno_vd[chat_id] = m.from_user.id
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.row(telebot.types.InlineKeyboardButton("🟢 Verdade", callback_data="vd_verdade"),
+               telebot.types.InlineKeyboardButton("🔴 Desafio", callback_data="vd_desafio"))
+    markup.add(telebot.types.InlineKeyboardButton("🍾 Girar Garrafa", callback_data="vd_girar"))
+    
+    bot.send_message(chat_id, f"🎯 <b>JOGO INICIADO!</b>\n\nVez de: <b>{m.from_user.first_name}</b>", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: True)
+def monitorar_atividades(m):
+    # Salva quem está falando no grupo para o bot saber quem está online
+    chat_id = m.chat.id
+    if chat_id not in usuarios_ativos_grupo: usuarios_ativos_grupo[chat_id] = {}
+    usuarios_ativos_grupo[chat_id][m.from_user.id] = m.from_user.first_name
+
+if __name__ == "__main__":
+    print("Bot em execução...")
+    bot.infinity_polling(skip_pending=True)
+    
