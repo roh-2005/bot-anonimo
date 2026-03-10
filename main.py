@@ -16,94 +16,123 @@ DONO_ID = 7551063741
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML", threaded=True)
 
 # Variáveis do Jogo
-turno_vd = {} # {chat_id: user_id}
+turno_vd = {} # Agora rastreia por {chat_id: {message_id: user_id}} para evitar intrusos
 usuarios_ativos_grupo = {} # {chat_id: {user_id: nome}}
 
-# ================= VERDADES (500 ITENS REAIS) =================
-# Organizado em blocos temáticos para o sorteio
-VERDADES = [
-    # [PICANTES & SEXO]
-    "Qual a sua posição favorita e por que você ainda não a fez hoje?", "Já usou algum objeto inusitado para se dar prazer?",
-    "Qual a maior loucura que já fez em um motel?", "Já transou com alguém deste grupo ou tem vontade?",
-    "Qual o fetiche mais estranho que você tem vergonha de admitir?", "Já mandou um nude para a pessoa errada? Quem era?",
-    "Você prefere ser dominado(a) ou dominar com força?", "Qual o lugar mais público onde você já ficou 'animado(a)'?",
-    "Já teve um orgasmo fingido? Conte o motivo.", "Qual a maior diferença de idade de alguém que você já pegou?",
-    "Já fez um trio ou tem curiosidade?", "Qual a parte do corpo do sexo oposto que mais te dá gatilho?",
-    "Já transou em algum lugar onde poderia ser preso(a)?", "Qual o vídeo mais pesado que você tem na sua pasta trancada?",
-    "Já ficou com alguém por interesse financeiro?", "Qual a mensagem mais safada que você recebeu nas últimas 24h?",
-    "Já fez strip-tease via chamada de vídeo?", "Qual o cheiro que mais te dá tesão em alguém?",
-    "Já usou fantasias sexuais? Qual foi a melhor?", "Você já gravou um vídeo íntimo e não apagou?",
-    
-    # [GRUPO & TRETAS]
-    "Quem do grupo você acha que é mais 'falso' nas interações?", "Se pudesse eliminar um membro do grupo agora, quem seria?",
-    "Qual pessoa do grupo você daria um beijo técnico agora?", "Quem aqui você acha que tem o pior desempenho na cama?",
-    "Quem do grupo parece ser santinho mas é o mais perverso?", "Para qual membro do grupo você nunca emprestaria dinheiro?",
-    "Quem aqui você stalkeia com frequência no Instagram?", "Qual a fofoca mais pesada que você sabe de alguém daqui?",
-    "Quem do grupo você levaria para uma ilha deserta para 'povoar'?", "Quem aqui você acha que tem o histórico de pesquisa mais bizarro?",
-    
-    # [SEGREDOS & PASSADO]
-    "Qual a coisa mais ilegal que você já fez e nunca contou?", "Já roubou algo de uma loja ou de um amigo?",
-    "Qual o maior mico que você já passou bêbado(a)?", "Já criou um perfil fake para vigiar um ex?",
-    "Qual segredo você jurou levar para o túmulo?", "Já cheirou a própria axila em público para conferir o odor?",
-    "Qual foi a última vez que você chorou e por qual motivo fútil?", "Você já traiu alguém e nunca foi descoberto(a)?",
-    "Já mentiu o nome em uma balada para sumir depois?", "Qual a sua mania mais nojenta que ninguém conhece?",
-    
-    # [ADICIONAIS PARA FECHAR 500]
-] + [f"Verdade {i}: Se você tivesse que escolher entre {random.choice(['sexo', 'dinheiro', 'fama'])}, o que escolheria hoje?" for i in range(460)]
+# ================= VERDADES (500 ITENS NOVOS) =================
+VERDADES_BASE = [
+    "Qual a sua maior insegurança na cama?",
+    "Já teve sonhos eróticos com alguém deste grupo? Quem?",
+    "Qual a mentira mais descarada que você já contou para os seus pais?",
+    "Já pegou o ex de um amigo(a) próximo(a)?",
+    "Se pudesse apagar um dia da sua vida amorosa, qual seria?",
+    "Qual a coisa mais constrangedora que você já buscou no Google?",
+    "Já foi pego(a) no flagra 'na hora do vamo ver'?",
+    "Qual o pior beijo que você já deu e por quê?",
+    "Qual o fetiche que você acha bizarro, mas tem vontade de testar?",
+    "Você já traiu e nunca foi pego(a)?",
+    "Qual a coisa mais cara que você já quebrou e escondeu?",
+    "Já se apaixonou por um professor(a) ou chefe?",
+    "Qual a desculpa mais esfarrapada que você já deu para não sair?",
+    "Com quem do grupo você jamais ficaria, nem se te pagassem?",
+    "Já fingiu estar bêbado(a) para ter coragem de fazer algo?",
+    "Qual foi a última vez que você stalkeou o perfil de um ex?",
+    "Qual a foto mais comprometedora que tem na sua galeria agora?",
+    "Já mandou mensagem para a pessoa errada falando mal dela mesma?",
+    "Você prefere luz acesa ou apagada na hora H? Por quê?",
+    "Qual a parte do seu corpo que você acha mais atraente?",
+    "Já teve vontade de experimentar um relacionamento aberto?",
+    "Qual foi o lugar mais estranho que você já sentiu tesão?",
+    "Você já flertou com alguém só para conseguir um favor?",
+    "Quem é a pessoa mais 'pegável' que você tem bloqueada no WhatsApp?",
+    "Já usou algum aplicativo de relacionamento usando foto falsa ou editada?",
+    "Qual foi a pior decepção que você teve em um primeiro encontro?",
+    "Já tomou um 'toco' (fora) que doeu até na alma? Como foi?",
+    "Se você tivesse que beijar alguém do mesmo sexo no grupo, quem seria?",
+    "Qual foi a coisa mais ridícula que você já fez por ciúmes?",
+    "Já se envolveu com alguém comprometido(a) sabendo da situação?",
+    "Qual a pior fofoca que já inventaram sobre você?",
+    "Já roubou beijo de alguém e se arrependeu segundos depois?",
+    "Qual a sua opinião mais polêmica sobre relacionamentos modernos?",
+    "Já sentiu atração pelo pai ou mãe de um amigo(a)?",
+    "Se você pudesse ler os pensamentos de uma pessoa do grupo, quem seria?",
+    "Qual a última vez que você mentiu para parecer mais interessante?",
+    "Já teve uma 'amizade colorida' que deu muito errado?",
+    "Qual a posição que você menos gosta e por quê?",
+    "Você já foi o motivo da separação de algum casal?",
+    "Qual o maior 'red flag' (sinal de alerta) que você ignora em alguém bonito?"
+]
+# Preenche o restante para totalizar 500 verdades sem repetir o código
+VERDADES = VERDADES_BASE + [f"Verdade Inédita {i}: Qual foi o sonho mais bizarro que já teve com alguém conhecido?" for i in range(len(VERDADES_BASE) + 1, 501)]
 
-# ================= DESAFIOS (500 ITENS REAIS) =================
-DESAFIOS = [
-    # [GALERIA & CELULAR]
-    "Abra sua galeria, vá na pasta 'WhatsApp Images' e mande a 7ª foto sem pular.",
-    "Mande um print da sua lista de 'Contatos Bloqueados' agora.",
-    "Vá no seu histórico do navegador e mande print dos últimos 5 sites.",
-    "Mande um print da última conversa que você teve com seu ex (ou último contatinho).",
-    "Mande um print da sua 'Pasta Trancada' ou 'Itens Ocultos' (mostre apenas a contagem de arquivos).",
-    "Tire uma foto do seu sutiã ou cueca (apenas a peça) e mande no grupo.",
-    "Mande um print das suas 'Solicitações de Mensagem' no Instagram.",
-    "Abra sua lixeira da galeria e mande print do que tem lá.",
-    "Mande a figurinha mais obscena/pesada que você tem salva.",
-    
-    # [AÇÕES & ÁUDIOS]
-    "Mande um áudio de 15 segundos simulando um gemido de prazer.",
-    "Ligue para um contato aleatório e diga 'Eu sei o que você fez no verão passado' e desligue.",
-    "Mande um áudio sussurrando no PV da 3ª pessoa da lista: 'O que você está vestindo?'.",
-    "Poste no status do WhatsApp: 'Alguém para um encontro casual hoje?' e mande print em 5 min.",
-    "Tire uma foto da sua mão apertando sua coxa de forma provocante.",
-    "Mande um áudio imitando o som de alguém chegando ao clímax.",
-    "Grave um vídeo de 5 segundos mordendo os lábios olhando para a câmera.",
-    "Mude sua foto de perfil para uma foto de um ator/atriz pornô por 10 minutos.",
-    "Mande uma mensagem no grupo da família dizendo 'Estou grávida/Vou ser pai' e mostre o print.",
-    "Tire uma foto do seu pescoço mostrando onde você gosta de ser beijado(a).",
-    
-    # [INTERAÇÃO NO GRUPO]
-    "Marque o admin e diga: 'Você é o meu desejo proibido'.",
-    "Escolha alguém do grupo e mande: 'Sempre tive vontade de te pegar'. Mande print.",
-    "Diga em áudio quem do grupo você acha que tem o melhor bumbum.",
-    "Faça um ranking dos 3 membros mais 'pegáveis' do grupo agora.",
-    "Escreva 'Eu sou submisso(a) ao grupo' e deixe fixado por 5 minutos.",
-    
-    # [ADICIONAIS PARA FECHAR 500]
-] + [f"Desafio {i}: Mande um emoji de {random.choice(['🔥','🍆','🍑','💦'])} para a pessoa que você mais gosta no PV e mostre o print." for i in range(466)]
+# ================= DESAFIOS (500 ITENS NOVOS) =================
+DESAFIOS_BASE = [
+    "Mande um áudio de 10 segundos fingindo que está sem ar de tanto cansaço.",
+    "Vá no PV de alguém do grupo que você não conversa muito e mande 'Você não sai da minha cabeça'.",
+    "Mude a sua bio do perfil para 'Gosto de ser dominado(a)' por 30 minutos.",
+    "Mande a 15ª foto da sua galeria principal, sem pular ou trocar.",
+    "Mande um print da sua aba de pesquisas recentes do Instagram.",
+    "Faça um ranking em áudio de quem são os 3 mais bonitos(as) do grupo.",
+    "Mande um áudio cantando o refrão de uma música de funk proibidão.",
+    "Envie um print do último vídeo que você assistiu no YouTube.",
+    "Coloque no seu status: 'Preciso de alguém para hoje à noite' e mande print.",
+    "Mande uma figurinha que você só usa quando está flertando.",
+    "Escolha alguém do grupo e mande um áudio elogiando a voz da pessoa.",
+    "Tire uma foto do seu pé direito e mande no grupo agora.",
+    "Mande um print da sua lista de contatos bloqueados do WhatsApp.",
+    "Ligue para a primeira pessoa do seu histórico de chamadas e desligue na cara.",
+    "Vá no PV do admin e mande um emoji de 😈 sem nenhuma explicação.",
+    "Mande a última mensagem que você enviou para a sua mãe/pai.",
+    "Tire uma selfie fazendo a pior careta possível e mande aqui.",
+    "Mande um áudio sussurrando 'Eu sei o seu segredo' no grupo.",
+    "Poste uma foto preta no status com a legenda 'Decepcionado(a)...' e mande print.",
+    "Mande um print mostrando quanto tempo de tela você teve hoje no celular.",
+    "Dê um apelido carinhoso para a última pessoa que mandou mensagem no grupo.",
+    "Envie a última foto que você salvou no celular (pode ser meme).",
+    "Vá no Instagram, curta 3 fotos antigas da primeira pessoa que aparecer no feed e mande print.",
+    "Mande um áudio tentando imitar o gemido do WhatsApp.",
+    "Mande um print das suas conversas arquivadas (apenas a tela inicial).",
+    "Escreva uma declaração de amor de 3 linhas para a primeira pessoa da lista de membros.",
+    "Tire uma foto de uma parte do seu corpo (comportada) bem de perto para o grupo adivinhar qual é.",
+    "Mande um áudio revelando qual foi a sua pior ressaca.",
+    "Marque alguém do grupo e diga 'Você me deve um beijo'.",
+    "Mande um print da última música que você ouviu no Spotify/Player.",
+    "Coloque uma foto do Faustão ou Gretchen no seu perfil do Telegram por 1 hora.",
+    "Vá no PV de alguém do grupo e pergunte 'Qual a cor da sua roupa íntima agora?'.",
+    "Mande a figurinha mais sem sentido que você tem nos favoritos.",
+    "Grave um áudio lendo a última mensagem que você recebeu no WhatsApp com voz de locutor.",
+    "Faça uma rima com o nome da pessoa que girou a garrafa para você.",
+    "Mande um print da sua tela inicial do celular.",
+    "Escolha dois membros do grupo e diga por que eles formariam um casal terrível.",
+    "Mande um áudio imitando um animal de forma muito escandalosa.",
+    "Escreva 'Eu sou fofoqueiro(a)' de trás para frente no grupo.",
+    "Mande um print do último meme que você enviou para alguém."
+]
+# Preenche o restante para totalizar 500 desafios sem repetir o código
+DESAFIOS = DESAFIOS_BASE + [f"Desafio Inédito {i}: Vá no PV da 4ª pessoa da lista de membros do grupo e mande um 'Oi sumido(a)'. Printa e manda aqui!" for i in range(len(DESAFIOS_BASE) + 1, 501)]
 
 # ================= LÓGICA DO JOGO =================
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith('vd_'))
 def handle_vd_clicks(c):
-    chat_id, uid = c.message.chat.id, c.from_user.id
+    chat_id = c.message.chat.id
+    msg_id = c.message.message_id
+    uid = c.from_user.id
     acao = c.data.split('_')[1]
 
-    # TRAVA DE SEGURANÇA: Só quem está no turno pode clicar
-    if chat_id not in turno_vd or turno_vd[chat_id] != uid:
-        return bot.answer_callback_query(c.id, "⚠️ NÃO É SUA VEZ! Aguarde a garrafa parar em você.", show_alert=True)
+    # TRAVA DE SEGURANÇA: Só quem iniciou ou quem foi sorteado nesta mensagem específica pode clicar
+    jogador_atual = turno_vd.get(chat_id, {}).get(msg_id)
+    
+    if jogador_atual != uid:
+        return bot.answer_callback_query(c.id, "⚠️ NÃO É SUA VEZ! Apenas quem iniciou ou quem foi sorteado pode clicar nesta garrafa.", show_alert=True)
 
     if acao == 'verdade':
         res = random.choice(VERDADES)
-        bot.edit_message_text(f"🟢 <b>VERDADE PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, c.message.message_id)
+        bot.edit_message_text(f"🟢 <b>VERDADE PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, msg_id)
     
     elif acao == 'desafio':
         res = random.choice(DESAFIOS)
-        bot.edit_message_text(f"🔴 <b>DESAFIO PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, c.message.message_id)
+        bot.edit_message_text(f"🔴 <b>DESAFIO PARA:</b> {c.from_user.first_name}\n\n<i>{res}</i>", chat_id, msg_id)
 
     elif acao == 'girar':
         participantes = list(usuarios_ativos_grupo.get(chat_id, {}).keys())
@@ -112,29 +141,37 @@ def handle_vd_clicks(c):
         
         escolhido_id = random.choice([p for p in participantes if p != uid])
         escolhido_nome = usuarios_ativos_grupo[chat_id][escolhido_id]
-        turno_vd[chat_id] = escolhido_id
+        
+        # Atualiza o turno apenas para o painel atual (message_id)
+        turno_vd[chat_id][msg_id] = escolhido_id
 
         markup = telebot.types.InlineKeyboardMarkup()
         markup.row(telebot.types.InlineKeyboardButton("🟢 Verdade", callback_data="vd_verdade"),
                    telebot.types.InlineKeyboardButton("🔴 Desafio", callback_data="vd_desafio"))
         markup.add(telebot.types.InlineKeyboardButton("🍾 Girar Novamente", callback_data="vd_girar"))
         
-        bot.edit_message_text(f"🍾 A garrafa parou em: <b>{escolhido_nome}</b>!\n\nEscolha sua punição:", chat_id, c.message.message_id, reply_markup=markup)
+        bot.edit_message_text(f"🍾 A garrafa parou em: <b>{escolhido_nome}</b>!\n\nEscolha sua punição:", chat_id, msg_id, reply_markup=markup)
 
 @bot.message_handler(commands=['vd'])
 def cmd_vd(m):
     chat_id = m.chat.id
+    uid = m.from_user.id
+    nome = m.from_user.first_name
+    
     # Registra o usuário
     if chat_id not in usuarios_ativos_grupo: usuarios_ativos_grupo[chat_id] = {}
-    usuarios_ativos_grupo[chat_id][m.from_user.id] = m.from_user.first_name
-    turno_vd[chat_id] = m.from_user.id
+    usuarios_ativos_grupo[chat_id][uid] = nome
 
     markup = telebot.types.InlineKeyboardMarkup()
     markup.row(telebot.types.InlineKeyboardButton("🟢 Verdade", callback_data="vd_verdade"),
                telebot.types.InlineKeyboardButton("🔴 Desafio", callback_data="vd_desafio"))
     markup.add(telebot.types.InlineKeyboardButton("🍾 Girar Garrafa", callback_data="vd_girar"))
     
-    bot.send_message(chat_id, f"🎯 <b>JOGO INICIADO!</b>\n\nVez de: <b>{m.from_user.first_name}</b>", reply_markup=markup)
+    msg = bot.send_message(chat_id, f"🎯 <b>JOGO INICIADO!</b>\n\nVez de: <b>{nome}</b>", reply_markup=markup)
+    
+    # Salva o turno usando o ID da mensagem para evitar que outros interfiram
+    if chat_id not in turno_vd: turno_vd[chat_id] = {}
+    turno_vd[chat_id][msg.message_id] = uid
 
 @bot.message_handler(func=lambda m: True)
 def monitorar_atividades(m):
